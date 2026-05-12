@@ -2,31 +2,33 @@ package main
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/futosawaguchi/go-job-queue/internal/job"
+	"github.com/futosawaguchi/go-job-queue/internal/handler"
 	"github.com/futosawaguchi/go-job-queue/internal/worker"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 	fmt.Println("Job Queue Server starting...")
 
-	// Worker3人でPoolを作成
+	// Worker 3人でPoolを作成・起動
 	pool := worker.NewWorkerPool(3)
 	pool.Start()
 
-	// テスト用にJobを3つ投入
-	for i := 1; i <= 3; i++ {
-		pool.Submit(job.Job{
-			ID:     fmt.Sprintf("job-%d", i),
-			Type:   "test",
-			Status: job.StatusPending,
-		})
-	}
+	// Handlerを作成
+	h := handler.NewHandler(pool)
 
-	// 少し待ってから停止
-	time.Sleep(1 * time.Second)
-	pool.Stop()
+	// echoのインスタンスを作成
+	e := echo.New()
 
-	fmt.Println("全Job完了！")
+	// ログとリカバリのミドルウェアを追加
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	// ルーティング
+	e.POST("/jobs", h.SubmitJob)
+
+	// サーバー起動
+	e.Logger.Fatal(e.Start(":8080"))
 }
