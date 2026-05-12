@@ -23,7 +23,7 @@ func main() {
 	e := echo.New()
 
 	// ログとリカバリのミドルウェアを追加
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 
 	// ルーティング
