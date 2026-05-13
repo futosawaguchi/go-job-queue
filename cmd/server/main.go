@@ -47,6 +47,7 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 
 	// ルーティング
 	e.POST("/jobs", h.SubmitJob)
