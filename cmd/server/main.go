@@ -47,6 +47,7 @@ func main() {
 
 	// ルーティング
 	e.POST("/jobs", h.SubmitJob)
+	e.GET("/jobs/:id", h.GetJob)
 
 	// サーバー起動
 	e.Logger.Fatal(e.Start(":8080"))

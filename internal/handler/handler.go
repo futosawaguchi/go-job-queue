@@ -63,3 +63,34 @@ func (h *Handler) SubmitJob(c echo.Context) error {
 		Status: string(j.Status),
 	})
 }
+
+// JobのレスポンスのStruct
+type GetJobResponse struct {
+	JobID     string `json:"job_id"`
+	Type      string `json:"type"`
+	Payload   string `json:"payload"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// GET /jobs/:id
+func (h *Handler) GetJob(c echo.Context) error {
+	id := c.Param("id")
+
+	j, err := h.db.GetJob(id)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "jobが見つかりません",
+		})
+	}
+
+	return c.JSON(http.StatusOK, GetJobResponse{
+		JobID:     j.ID,
+		Type:      j.Type,
+		Payload:   j.Payload,
+		Status:    string(j.Status),
+		CreatedAt: j.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt: j.UpdatedAt.Format("2006-01-02 15:04:05"),
+	})
+}
