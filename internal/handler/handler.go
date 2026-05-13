@@ -7,6 +7,7 @@ import (
 	"github.com/futosawaguchi/go-job-queue/db"
 	"github.com/futosawaguchi/go-job-queue/internal/job"
 	"github.com/futosawaguchi/go-job-queue/internal/worker"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -40,7 +41,7 @@ func (h *Handler) SubmitJob(c echo.Context) error {
 	}
 
 	j := job.Job{
-		ID:        time.Now().Format("20060102150405"),
+		ID:        uuid.New().String(),
 		Type:      req.Type,
 		Payload:   req.Payload,
 		Status:    job.StatusPending,

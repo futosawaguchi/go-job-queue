@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/futosawaguchi/go-job-queue/db"
 	"github.com/futosawaguchi/go-job-queue/internal/handler"
@@ -17,7 +21,7 @@ func main() {
 
 	// .envファイルを読み込む
 	if err := godotenv.Load(); err != nil {
-		panic("'.envファイルが見つかりません")
+		panic(".envファイルが見つかりません")
 	}
 
 	// DB接続
@@ -30,17 +34,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Println("DB接続成功！")
 
-	// Worker 3人でPoolを作成・起動
+	// Worker Pool作成・起動
 	pool := worker.NewWorkerPool(3, database)
 	pool.Start()
 
-	// Handlerを作成
+	// Handler作成
 	h := handler.NewHandler(pool, database)
 
-	// echoのインスタンスを作成
+	// echoのインスタンス作成
 	e := echo.New()
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
@@ -49,6 +52,29 @@ func main() {
 	e.POST("/jobs", h.SubmitJob)
 	e.GET("/jobs/:id", h.GetJob)
 
-	// サーバー起動
-	e.Logger.Fatal(e.Start(":8080"))
+	// 別goroutineでサーバーを起動
+	go func() {
+		if err := e.Start(":8080"); err != nil {
+			fmt.Println("サーバーを停止しました")
+		}
+	}()
+
+	// OSシグナルを待ち受ける
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit // Ctrl+C が押されるまでここで待機
+
+	fmt.Println("シャットダウン開始...")
+
+	// 新しいリクエストの受付を停止（10秒でタイムアウト）
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		fmt.Println("HTTPサーバーの停止に失敗:", err)
+	}
+
+	// 処理中のJobが全部終わるまで待つ
+	pool.Stop()
+
+	fmt.Println("サーバーを安全に停止しました")
 }

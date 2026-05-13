@@ -3,6 +3,7 @@ package worker
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/futosawaguchi/go-job-queue/db"
 	"github.com/futosawaguchi/go-job-queue/internal/job"
@@ -40,6 +41,7 @@ func (wp *WorkerPool) runWorker(id int) {
 		wp.db.UpdateJobStatus(j.ID, job.StatusRunning)
 
 		// ここに実際の処理が入る
+		time.Sleep(5 * time.Second)
 
 		// 完了ステータスに更新
 		wp.db.UpdateJobStatus(j.ID, job.StatusCompleted)
