@@ -4,28 +4,27 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/futosawaguchi/go-job-queue/db"
 	"github.com/futosawaguchi/go-job-queue/internal/job"
 	"github.com/futosawaguchi/go-job-queue/internal/worker"
 	"github.com/labstack/echo/v4"
 )
 
-// Handlerの構造体
 type Handler struct {
 	pool *worker.WorkerPool
+	db   *db.DB
 }
 
-// Handlerを作成する関数
-func NewHandler(pool *worker.WorkerPool) *Handler {
-	return &Handler{pool: pool}
+// dbを受け取るように変更
+func NewHandler(pool *worker.WorkerPool, db *db.DB) *Handler {
+	return &Handler{pool: pool, db: db}
 }
 
-// JobをSubmitするAPIのリクエスト
 type SubmitJobRequest struct {
 	Type    string `json:"type"`
 	Payload string `json:"payload"`
 }
 
-// JobをSubmitするAPIのレスポンス
 type SubmitJobResponse struct {
 	JobID  string `json:"job_id"`
 	Status string `json:"status"`
@@ -46,8 +45,17 @@ func (h *Handler) SubmitJob(c echo.Context) error {
 		Payload:   req.Payload,
 		Status:    job.StatusPending,
 		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
+	// DBに保存
+	if err := h.db.SaveJob(j); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "jobの保存に失敗しました",
+		})
+	}
+
+	// Workerに投入
 	h.pool.Submit(j)
 
 	return c.JSON(http.StatusAccepted, SubmitJobResponse{
