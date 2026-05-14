@@ -3,26 +3,39 @@ package worker
 import (
 	"fmt"
 	"sync"
-	"time"
 
-	"github.com/futosawaguchi/go-job-queue/db"
 	"github.com/futosawaguchi/go-job-queue/internal/job"
 )
+
+// DBのインターフェース（本物とモックを切り替えられる）
+type JobDB interface {
+	UpdateJobStatus(id string, status job.Status) error
+}
 
 type WorkerPool struct {
 	workerCount int
 	jobQueue    chan job.Job
 	wg          sync.WaitGroup
-	db          *db.DB
+	db          JobDB
+	processor   func(job.Job)
 }
 
-// dbを受け取るように変更
-func NewWorkerPool(workerCount int, db *db.DB) *WorkerPool {
+func NewWorkerPool(workerCount int, db JobDB) *WorkerPool {
 	return &WorkerPool{
 		workerCount: workerCount,
 		jobQueue:    make(chan job.Job, 100),
 		db:          db,
 	}
+}
+
+// テスト用：DBなしで作成
+func NewWorkerPoolWithDB(workerCount int, db JobDB) *WorkerPool {
+	return NewWorkerPool(workerCount, db)
+}
+
+// テスト用：カスタム処理を設定
+func (wp *WorkerPool) SetProcessor(fn func(job.Job)) {
+	wp.processor = fn
 }
 
 func (wp *WorkerPool) Start() {
@@ -36,16 +49,14 @@ func (wp *WorkerPool) runWorker(id int) {
 	defer wp.wg.Done()
 	for j := range wp.jobQueue {
 		fmt.Printf("Worker %d: Job %s を処理中...\n", id, j.ID)
-
-		// 処理中ステータスに更新
 		wp.db.UpdateJobStatus(j.ID, job.StatusRunning)
 
-		// ここに実際の処理が入る
-		time.Sleep(5 * time.Second)
+		// カスタム処理があれば実行
+		if wp.processor != nil {
+			wp.processor(j)
+		}
 
-		// 完了ステータスに更新
 		wp.db.UpdateJobStatus(j.ID, job.StatusCompleted)
-
 		fmt.Printf("Worker %d: Job %s 完了!\n", id, j.ID)
 	}
 }
