@@ -3,6 +3,7 @@ package worker
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/futosawaguchi/go-job-queue/internal/job"
 )
@@ -55,6 +56,7 @@ func (wp *WorkerPool) runWorker(id int) {
 		if wp.processor != nil {
 			wp.processor(j)
 		}
+		time.Sleep(3 * time.Second)
 
 		wp.db.UpdateJobStatus(j.ID, job.StatusCompleted)
 		fmt.Printf("Worker %d: Job %s 完了!\n", id, j.ID)

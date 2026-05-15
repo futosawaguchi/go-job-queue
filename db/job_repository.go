@@ -21,6 +21,16 @@ func (db *DB) GetJob(id string) (*job.Job, error) {
 	return &j, nil
 }
 
+// 全Jobを取得する
+func (db *DB) GetAllJobs() ([]job.Job, error) {
+	var jobs []job.Job
+	result := db.Conn.Order("created_at desc").Find(&jobs)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return jobs, nil
+}
+
 // JobのStatusを更新する
 func (db *DB) UpdateJobStatus(id string, status job.Status) error {
 	return db.Conn.Model(&job.Job{}).

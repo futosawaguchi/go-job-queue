@@ -52,6 +52,7 @@ func main() {
 	// ルーティング
 	e.POST("/jobs", h.SubmitJob)
 	e.GET("/jobs/:id", h.GetJob)
+	e.GET("/jobs", h.GetAllJobs)
 
 	// 別goroutineでサーバーを起動
 	go func() {

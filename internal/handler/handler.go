@@ -95,3 +95,31 @@ func (h *Handler) GetJob(c echo.Context) error {
 		UpdatedAt: j.UpdatedAt.Format("2006-01-02 15:04:05"),
 	})
 }
+
+// GET /jobs
+func (h *Handler) GetAllJobs(c echo.Context) error {
+	jobs, err := h.db.GetAllJobs()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "jobの取得に失敗しました",
+		})
+	}
+
+	var response []GetJobResponse
+	for _, j := range jobs {
+		response = append(response, GetJobResponse{
+			JobID:     j.ID,
+			Type:      j.Type,
+			Payload:   j.Payload,
+			Status:    string(j.Status),
+			CreatedAt: j.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt: j.UpdatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	if response == nil {
+		response = []GetJobResponse{}
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
