@@ -56,6 +56,8 @@ func (wp *WorkerPool) runWorker(id int) {
 		if wp.processor != nil {
 			wp.processor(j)
 		}
+		// NOTE: 並行処理を可視化するためのダミー処理
+		// 本番環境では実際の処理（画像リサイズ・メール送信など）に置き換える
 		time.Sleep(3 * time.Second)
 
 		wp.db.UpdateJobStatus(j.ID, job.StatusCompleted)
